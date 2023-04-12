@@ -1,15 +1,24 @@
 #include <Arduino.h>
 #include <SoftwareSerial.h>
+#include "AmperkaServo/src/AmperkaServo.h"
 #include "tfmini-master/src/TFMini.h"
 // #include "TFLidar.h"
 // #include "GyverStepper-main/src/GyverStepper2.h"
 // #include "CustomStepper/CustomStepper.h"
-#include "Stepper_28BYJ/ssss.h"
+// #include "Stepper_28BYJ/ssss.h"
 
-const int stepsPerRevolution = 4076;
+// const int stepsPerRevolution = 4076;
 // CustomStepper stepper(8, 9, 10, 11);
-Stepper_28BYJ stepper(stepsPerRevolution, 8, 9, 10, 11);
+// Stepper_28BYJ stepper(stepsPerRevolution, 8, 9, 10, 11);
 // GStepper2<STEPPER4WIRE> stepper(2048, 8, 9, 10, 11);
+
+constexpr uint8_t SERVO_PIN = 9;
+// Speed values in the range [0, 180]. 0 is full speed in reverse,
+// 90 is neutral, and 180 is full speed forward.
+int FORWARD = 180;
+int NEUTRAL = 90;
+int REVERSE = 0;
+AmperkaServo myservo;
 
 TFMini tfmini;
 
@@ -56,13 +65,14 @@ void setup()
 {
     Serial.begin(9600); // 9600 Initialize hardware serial port (serial debug port)
     Serial.println("Initializing0...");
-    while (!Serial)
-        ; // wait for serial port to connect. Needed for native USB port only
+    // while (!Serial)
+    //     ; // wait for serial port to connect. Needed for native USB port only
     Serial.println("Initialized...");
 
     // SerialTFMini.begin(TFMINI_BAUDRATE); // 115200 Initialize the data rate for the SoftwareSerial port
     // tfmini.begin(&SerialTFMini);         // Initialize the TF Mini sensor
-    stepper.setSpeed(5);
+    // stepper.setSpeed(5);
+    myservo.attach(SERVO_PIN, 544, 2400, 0, 180);
 }
 
 int stepCount = 0;
@@ -101,17 +111,17 @@ void loop()
     //   tmr = millis();
     //   Serial.println(stepper.pos);
     // }
-
-    // Wait for 1 second before repeating the cycle
-    Serial.println("clockwise");
-    stepper.step(stepsPerRevolution);
-    delay(500);
-
-    // step one revolution in the other direction:
-    // шагаем 1 оборот в другом направлении
-    Serial.println("counterclockwise");
-    stepper.step(-stepsPerRevolution);
-    delay(500);
+    Serial.println("loop");
+    myservo.writeSpeed(255);
+    // Ждём от 1 до 5 секунд
+    delay(random(1000, 5000));
+    // Останавливаем сервопривод
+    myservo.writeSpeed(0);
+    // Ждём одну секунду для полной остановки мотора
+    delay(1000);
+    // Считываем и выводим текущий угол сервопривода
+    // Serial.println(myservo.readAngleFB());
+    // Ждём одну секунду для просмотра результата
 }
 
 /*
