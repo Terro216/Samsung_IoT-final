@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <SoftwareSerial.h>
-#include "AmperkaServo/src/AmperkaServo.h"
+// #include "AmperkaServo/src/AmperkaServo.h"
+#include "Servo-master/src/Servo.h"
 #include "tfmini-master/src/TFMini.h"
 // #include "TFLidar.h"
 // #include "GyverStepper-main/src/GyverStepper2.h"
@@ -15,10 +16,8 @@
 constexpr uint8_t SERVO_PIN = 9;
 // Speed values in the range [0, 180]. 0 is full speed in reverse,
 // 90 is neutral, and 180 is full speed forward.
-int FORWARD = 180;
-int NEUTRAL = 90;
-int REVERSE = 0;
-AmperkaServo myservo;
+
+Servo myservo;
 
 TFMini tfmini;
 
@@ -26,102 +25,90 @@ SoftwareSerial SerialTFMini(2, 3); // The only value that matters here is the fi
 
 void getTFminiData(int *distance, int *strength)
 {
-    static char i = 0;
-    char j = 0;
-    int checksum = 0;
-    static int rx[9];
-    if (SerialTFMini.available())
+  static char i = 0;
+  char j = 0;
+  int checksum = 0;
+  static int rx[9];
+  if (SerialTFMini.available())
+  {
+    rx[i] = SerialTFMini.read();
+    if (rx[0] != 0x59)
     {
-        rx[i] = SerialTFMini.read();
-        if (rx[0] != 0x59)
-        {
-            i = 0;
-        }
-        else if (i == 1 && rx[1] != 0x59)
-        {
-            i = 0;
-        }
-        else if (i == 8)
-        {
-            for (j = 0; j < 8; j++)
-            {
-                checksum += rx[j];
-            }
-            if (rx[8] == (checksum % 256))
-            {
-                *distance = rx[2] + rx[3] * 256;
-                *strength = rx[4] + rx[5] * 256;
-            }
-            i = 0;
-        }
-        else
-        {
-            i++;
-        }
+      i = 0;
     }
+    else if (i == 1 && rx[1] != 0x59)
+    {
+      i = 0;
+    }
+    else if (i == 8)
+    {
+      for (j = 0; j < 8; j++)
+      {
+        checksum += rx[j];
+      }
+      if (rx[8] == (checksum % 256))
+      {
+        *distance = rx[2] + rx[3] * 256;
+        *strength = rx[4] + rx[5] * 256;
+      }
+      i = 0;
+    }
+    else
+    {
+      i++;
+    }
+  }
 }
 
 void setup()
 {
-    Serial.begin(9600); // 9600 Initialize hardware serial port (serial debug port)
-    Serial.println("Initializing0...");
-    // while (!Serial)
-    //     ; // wait for serial port to connect. Needed for native USB port only
-    Serial.println("Initialized...");
+  Serial.begin(9600); // 9600 Initialize hardware serial port (serial debug port)
+  Serial.println("Initializing0...");
+  // while (!Serial)
+  //     ; // wait for serial port to connect. Needed for native USB port only
+  Serial.println("Initialized...");
 
-    // SerialTFMini.begin(TFMINI_BAUDRATE); // 115200 Initialize the data rate for the SoftwareSerial port
-    // tfmini.begin(&SerialTFMini);         // Initialize the TF Mini sensor
-    // stepper.setSpeed(5);
-    myservo.attach(SERVO_PIN, 544, 2400, 0, 180);
+  // SerialTFMini.begin(TFMINI_BAUDRATE); // 115200 Initialize the data rate for the SoftwareSerial port
+  // tfmini.begin(&SerialTFMini);         // Initialize the TF Mini sensor
+  // stepper.setSpeed(5);
+  myservo.attach(SERVO_PIN); //, 544, 2400, 0, 180
+  myservo.write(90);
 }
 
-int stepCount = 0;
+int stepCount = 90;
 
 void loop()
 {
-    int distance = 0;
-    int strength = 0;
+  int distance = 0;
+  int strength = 0;
 
-    // getTFminiData(&distance, &strength);
-    // while (!distance)
-    // {
-    //   getTFminiData(&distance, &strength);
-    //   if (distance)
-    //   {
-    //     Serial.print(distance);
-    //     Serial.print("cm\t");
-    //     Serial.print("strength: ");
-    //     Serial.println(strength);
-    //   }
-    // }
-
-    // stepper.tick(); // мотор асинхронно крутится тут
-
-    // // если приехали
-    // if (stepper.ready())
-    // {
-    //   dir = !dir; // разворачиваем
-    //   stepper.setTargetDeg(dir ? (int32_t)200 : -200);
-    // }
-
-    // // асинхронный вывод в порт
-    // static uint32_t tmr;
-    // if (millis() - tmr >= 30)
-    // {
-    //   tmr = millis();
-    //   Serial.println(stepper.pos);
-    // }
-    Serial.println("loop");
-    myservo.writeSpeed(255);
-    // Ждём от 1 до 5 секунд
-    delay(random(1000, 5000));
-    // Останавливаем сервопривод
-    myservo.writeSpeed(0);
-    // Ждём одну секунду для полной остановки мотора
-    delay(1000);
-    // Считываем и выводим текущий угол сервопривода
-    // Serial.println(myservo.readAngleFB());
-    // Ждём одну секунду для просмотра результата
+  // getTFminiData(&distance, &strength);
+  // while (!distance)
+  // {
+  //   getTFminiData(&distance, &strength);
+  //   if (distance)
+  //   {
+  //     Serial.print(distance);
+  //     Serial.print("cm\t");
+  //     Serial.print("strength: ");
+  //     Serial.println(strength);
+  //   }
+  // }
+  while (stepCount < 180)
+  {
+    myservo.write(stepCount);
+    stepCount++;
+    delay(500);
+    Serial.println(stepCount);
+  }
+  while (stepCount > 90)
+  {
+    myservo.write(stepCount);
+    stepCount--;
+    Serial.println(stepCount);
+    delay(500);
+  }
+  Serial.println("loop");
 }
 
 /*
