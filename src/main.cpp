@@ -1,231 +1,85 @@
 #include <Arduino.h>
-#include <SoftwareSerial.h>
-// #include "AmperkaServo/src/AmperkaServo.h"
-#include "Servo-master/src/Servo.h"
-#include "tfmini-master/src/TFMini.h"
-// #include "TFLidar.h"
-// #include "GyverStepper-main/src/GyverStepper2.h"
-// #include "CustomStepper/CustomStepper.h"
-// #include "Stepper_28BYJ/ssss.h"
+#include "GyverStepper-main/src/GyverStepper.h"
+#include <vector>
 
-// const int stepsPerRevolution = 4076;
-// CustomStepper stepper(8, 9, 10, 11);
-// Stepper_28BYJ stepper(stepsPerRevolution, 8, 9, 10, 11);
-// GStepper2<STEPPER4WIRE> stepper(2048, 8, 9, 10, 11);
+GStepper<STEPPER4WIRE> stepper(1, 5, 3, 4, 2);
 
-constexpr uint8_t SERVO_PIN = 9;
-// Speed values in the range [0, 180]. 0 is full speed in reverse,
-// 90 is neutral, and 180 is full speed forward.
-
-Servo myservo;
-
-TFMini tfmini;
-
-SoftwareSerial SerialTFMini(2, 3); // The only value that matters here is the first one, 2, Rx
-
-void getTFminiData(int *distance, int *strength)
+class Point
 {
-  static char i = 0;
-  char j = 0;
-  int checksum = 0;
-  static int rx[9];
-  if (SerialTFMini.available())
+  int deg;
+  int step;
+  Point(int deg, int step)
   {
-    rx[i] = SerialTFMini.read();
-    if (rx[0] != 0x59)
-    {
-      i = 0;
-    }
-    else if (i == 1 && rx[1] != 0x59)
-    {
-      i = 0;
-    }
-    else if (i == 8)
-    {
-      for (j = 0; j < 8; j++)
-      {
-        checksum += rx[j];
-      }
-      if (rx[8] == (checksum % 256))
-      {
-        *distance = rx[2] + rx[3] * 256;
-        *strength = rx[4] + rx[5] * 256;
-      }
-      i = 0;
-    }
-    else
-    {
-      i++;
-    }
-  }
-}
+    this->deg = deg;
+    this->step = step;
+  };
+};
 
+// 4076
+// steps for round = 2038
+// 1 deg = 5.66111111 steps
 void setup()
 {
-  Serial.begin(9600); // 9600 Initialize hardware serial port (serial debug port)
-  Serial.println("Initializing0...");
-  // while (!Serial)
-  //     ; // wait for serial port to connect. Needed for native USB port only
-  Serial.println("Initialized...");
-
-  // SerialTFMini.begin(TFMINI_BAUDRATE); // 115200 Initialize the data rate for the SoftwareSerial port
-  // tfmini.begin(&SerialTFMini);         // Initialize the TF Mini sensor
-  // stepper.setSpeed(5);
-  myservo.attach(SERVO_PIN); //, 544, 2400, 0, 180
-  myservo.write(90);
+  Serial.begin(9600);
+  stepper.setRunMode(KEEP_SPEED);
+  stepper.setMaxSpeed(500); // скорость движения
+  // stepper.setMaxSpeedDeg((int32_t)600);
+  stepper.setSpeed(500);
+  // stepper.setSpeedDeg(1);
 }
 
-int stepCount = 90;
-
+bool dir = true;
+int counter = 0;
+int currentDeg = 0;
+uint32_t tmr = 0;
+std::vector<Point> res;
 void loop()
 {
-  int distance = 0;
-  int strength = 0;
-
-  // getTFminiData(&distance, &strength);
-  // while (!distance)
-  // {
-  //   getTFminiData(&distance, &strength);
-  //   if (distance)
-  //   {
-  //     Serial.print(distance);
-  //     Serial.print("cm\t");
-  //     Serial.print("strength: ");
-  //     Serial.println(strength);
-  //   }
-  // }
-  while (stepCount < 180)
+  if (!dir)
+    return;
+  stepper.tick();
+  if (millis() - tmr > 12)
   {
-    myservo.write(stepCount);
-    stepCount++;
-    delay(500);
-    Serial.println(stepCount);
-  }
-  while (stepCount > 90)
-  {
-    myservo.write(stepCount);
-    stepCount--;
-    Serial.println(stepCount);
-    delay(500);
-  }
-  Serial.println("loop");
-}
-
-/*
-
-#include <Arduino.h>
-#include <SoftwareSerial.h>
-#include "tfmini-master/src/TFMini.h"
-// #include "TFLidar.h"
-// #include "GyverStepper-main/src/GyverStepper2.h"
-// создаем экземпляр AccelStepper
-#include "AccelStepper-master\src\AccelStepper.h"
-// #include "CustomStepper/CustomStepper.h"
-// #include "Stepper_28BYJ/ssss.h"
-
-AccelStepper stepper(AccelStepper::FULL4WIRE, 8, 9, 10, 11);
-// CustomStepper stepper(4, 5, 6, 7);
-// Stepper_28BYJ stepper(4078 * 2, 8, 9, 10, 11);
-// GStepper2<STEPPER4WIRE> stepper(2048, 8, 9, 10, 11);
-
-TFMini tfmini;
-
-SoftwareSerial SerialTFMini(2, 3); // The only value that matters here is the first one, 2, Rx
-
-void getTFminiData(int *distance, int *strength)
-{
-  static char i = 0;
-  char j = 0;
-  int checksum = 0;
-  static int rx[9];
-  if (SerialTFMini.available())
-  {
-    rx[i] = SerialTFMini.read();
-    if (rx[0] != 0x59)
+    tmr = millis();
+    int cur = stepper.getCurrent();
+    if (currentDeg != int(cur / 5.64) % 360)
     {
-      i = 0;
-    }
-    else if (i == 1 && rx[1] != 0x59)
-    {
-      i = 0;
-    }
-    else if (i == 8)
-    {
-      for (j = 0; j < 8; j++)
+      currentDeg = int(cur / 5.64) % 360;
+      // int currentSteps = stepper.getCurrent();
+      Serial.print(counter);
+      Serial.print("     ");
+      // Serial.print(stepper.getCurrentDeg());
+      Serial.print("     ");
+      Serial.println(currentDeg);
+      res.push_back(Point p(currentDeg, cur));
+
+      if (currentDeg == 0)
       {
-        checksum += rx[j];
+        // stepper.setCurrent(0);
+        counter += 1;
       }
-      if (rx[8] == (checksum % 256))
-      {
-        *distance = rx[2] + rx[3] * 256;
-        *strength = rx[4] + rx[5] * 256;
-      }
-      i = 0;
-    }
-    else
-    {
-      i++;
+      if (counter == 20)
+        dir = false;
+      for (Point p : res)
+        Serial.print(p.i); // print out
     }
   }
 }
+// void loop()
+// {
+//   stepper.tick();
+//   static uint32_t tmr;
+//   if (millis() - tmr >= 30)
+//   {
+//     tmr = millis();
+//     int currentStep = stepper.getCurrent();
+//     // Serial.println(currentStep);
 
-void setup()
-{
-  Serial.begin(9600); // 9600 Initialize hardware serial port (serial debug port)
-  Serial.println("Initializing0...");
-  while (!Serial)
-    ; // wait for serial port to connect. Needed for native USB port only
-  Serial.println("Initialized...");
-  // SerialTFMini.begin(TFMINI_BAUDRATE); // 115200 Initialize the data rate for the SoftwareSerial port
-  // tfmini.begin(&SerialTFMini);         // Initialize the TF Mini sensor
-  // stepper.setMaxSpeedDeg((int32_t)360);
-  // // stepper.setMaxSpeed((int32_t)4000);
+//     // Вычисление текущего градуса поворота
+//     float currentDegree = ((float)currentStep / 64.0) * 360.0; // 64 шага на один оборот
 
-  // stepper.setTargetDeg((int32_t)200);
-  stepper.setMaxSpeed(1000);    // in steps per second
-  stepper.setAcceleration(500); // in steps per second^2
-}
-
-bool dir = 1;
-void loop()
-{
-  int distance = 0;
-  int strength = 0;
-
-  // getTFminiData(&distance, &strength);
-  // while (!distance)
-  // {
-  //   getTFminiData(&distance, &strength);
-  //   if (distance)
-  //   {
-  //     Serial.print(distance);
-  //     Serial.print("cm\t");
-  //     Serial.print("strength: ");
-  //     Serial.println(strength);
-  //   }
-  // }
-
-  // stepper.tick(); // мотор асинхронно крутится тут
-
-  // // если приехали
-  // if (stepper.ready())
-  // {
-  //   dir = !dir; // разворачиваем
-  //   stepper.setTargetDeg(dir ? (int32_t)200 : -200);
-  // }
-
-  // // асинхронный вывод в порт
-  // static uint32_t tmr;
-  // if (millis() - tmr >= 30)
-  // {
-  //   tmr = millis();
-  //   Serial.println(stepper.pos);
-  // }
-  stepper.runSpeed();
-
-  // Wait for 1 second before repeating the cycle
-  delay(100);
-}
-
-
-*/
+//     while (currentDegree > 360)
+//       currentDegree -= 360;
+//     Serial.println(currentDegree);
+//   }
+// }
