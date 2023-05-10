@@ -7,15 +7,15 @@ Stepper<STEPPER4WIRE> stepper(7, 5, 6, 4);
 
 struct Point
 {
-  short deg;
-  short step;
-  short distance;
+  int deg;
+  // int step;
+  int distance;
   // int strength;
-  Point(int deg = 0, int step = 0, int distance = 0) //, int strength = 0)
+  Point(int deg = 0, int distance = 0) //, int strength = 0) , int step = 0
   {
-    this->deg = short(deg);
-    this->step = short(step);
-    this->distance = short(distance);
+    this->deg = (deg);
+    // this->step = (step);
+    this->distance = (distance);
     // this->strength = strength;
   };
 };
@@ -108,7 +108,7 @@ void loop()
       //   Serial.println(strength);
       // }
     }
-    Point p(currentDeg, stepper.pos, distance);
+    Point p(currentDeg, distance);
     res[arrI] = p;
     if (arrI < arrLen)
       arrI++;
@@ -126,10 +126,10 @@ void loop()
       for (Point p : res)
       {
         Serial.println("");
-        Serial.print("deg: ");       // print out
-        Serial.print(p.deg);         // print out
-        Serial.print(" step: ");     // print out
-        Serial.print(p.step);        // print out
+        Serial.print("deg: "); // print out
+        Serial.print(p.deg);   // print out
+        // Serial.print(" step: ");     // print out
+        // Serial.print(p.step);        // print out
         Serial.print(" distance: "); // print out
         Serial.print(p.distance);    // print out
       }
