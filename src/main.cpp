@@ -1,29 +1,28 @@
 #include <Arduino.h>
+#include <SoftwareSerial.h>
 #include "GyverStepper-main/src/StepperCore.h"
 #include "tfmini-master/src/TFMini.h"
-#include <SoftwareSerial.h>
 
-Stepper<STEPPER4WIRE> stepper(5, 3, 4, 2);
+Stepper<STEPPER4WIRE> stepper(7, 5, 6, 4);
 
-class Point
+struct Point
 {
-public:
-  int deg;
-  int step;
-  int distance;
-  int strength;
-  Point(int deg = 0, int step = 0, int distance = 0, int strength = 0)
+  short deg;
+  short step;
+  short distance;
+  // int strength;
+  Point(int deg = 0, int step = 0, int distance = 0) //, int strength = 0)
   {
-    this->deg = deg;
-    this->step = step;
-    this->distance = distance;
-    this->strength = strength;
+    this->deg = short(deg);
+    this->step = short(step);
+    this->distance = short(distance);
+    // this->strength = strength;
   };
 };
 
 TFMini tfmini;
 
-SoftwareSerial SerialTFMini(9, 8); // The only value that matters here is the first one, Rx
+SoftwareSerial SerialTFMini(2, 3); // The only value that matters here is the first one, Rx
 
 void getTFminiData(int *distance, int *strength)
 {
@@ -65,12 +64,12 @@ void getTFminiData(int *distance, int *strength)
 void setup()
 {
   Serial.begin(9600);
-  // while (!Serial)
-  //   ;
+  while (!Serial)
+    ;
   Serial.println("Initializing...");
   stepper.dir = 1;                     // или -1
   stepper.pos = 0;                     // доступ к позиции
-  SerialTFMini.begin(TFMINI_BAUDRATE); // 115200 Initialize the data rate for the SoftwareSerial port
+  SerialTFMini.begin(TFMINI_BAUDRATE); // Initialize the data rate for the SoftwareSerial port
   tfmini.begin(&SerialTFMini);         // Initialize the TF Mini sensor
 }
 
@@ -81,7 +80,6 @@ const int arrLen = 360;
 uint32_t tmr = 0;
 Point res[arrLen];
 int arrI = 0;
-// Vector<Point> res(storage);
 void loop()
 {
   if (!dir)
@@ -102,18 +100,16 @@ void loop()
     while (!distance)
     {
       getTFminiData(&distance, &strength);
-      if (distance)
-        // {
-        Serial.println(distance);
+      // if (distance)
+      // {
+      // Serial.println(distance);
       //   Serial.print("cm\t");
       //   Serial.print("strength: ");
       //   Serial.println(strength);
+      // }
     }
-    // }
-    // return;
-
-    Point p(currentDeg, stepper.pos, distance, strength);
-    // res[arrI] = p;
+    Point p(currentDeg, stepper.pos, distance);
+    res[arrI] = p;
     if (arrI < arrLen)
       arrI++;
     else
