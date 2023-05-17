@@ -80,10 +80,14 @@ const int arrLen = 360;
 uint32_t tmr = 0;
 Point res[arrLen];
 int arrI = 0;
+String json;
 void loop()
 {
   if (!dir)
+  {
+    delay(10000);
     return;
+  }
   stepper.step();
   int newDeg = int(stepper.pos / 5.64) % 360;
   if (currentDeg != newDeg)
@@ -100,20 +104,13 @@ void loop()
     while (!distance)
     {
       getTFminiData(&distance, &strength);
-      // if (distance)
-      // {
-      // Serial.println(distance);
-      //   Serial.print("cm\t");
-      //   Serial.print("strength: ");
-      //   Serial.println(strength);
-      // }
     }
     Point p(currentDeg, distance);
     res[arrI] = p;
     if (arrI < arrLen)
       arrI++;
-    else
-      arrI = 0;
+    // else
+    //   arrI = 0;
 
     if (currentDeg == 0)
     {
@@ -123,16 +120,26 @@ void loop()
     if (counter == 1)
     {
       dir = false;
+      // for (Point p : res)
+      // {
+      //   Serial.println("");
+      //   Serial.print("deg: "); // print out
+      //   Serial.print(p.deg);   // print out
+      //   // Serial.print(" step: ");     // print out
+      //   // Serial.print(p.step);        // print out
+      //   Serial.print(" distance: "); // print out
+      //   Serial.print(p.distance);    // print out
+      // }
+      Serial.print("[");
       for (Point p : res)
       {
-        Serial.println("");
-        Serial.print("deg: "); // print out
-        Serial.print(p.deg);   // print out
-        // Serial.print(" step: ");     // print out
-        // Serial.print(p.step);        // print out
-        Serial.print(" distance: "); // print out
-        Serial.print(p.distance);    // print out
+        Serial.print("[");
+        Serial.print(p.deg);
+        Serial.print(",");
+        Serial.print(p.distance);
+        Serial.print("],");
       }
+      Serial.print("]");
     }
   }
   delay(5);
