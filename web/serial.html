@@ -2,30 +2,67 @@
 	<head>
 		<title>Чтение данных</title>
 		<script type="text/javascript" src="paper/dist/paper-full.min.js"></script>
+		<style>
+			html,
+			body {
+				height: 100%;
+			}
+
+			/* Scale canvas with resize attribute to full size */
+			canvas[resize] {
+				width: 100%;
+				height: 100%;
+			}
+		</style>
 	</head>
 	<body>
 		<button style="width: 50vw; height: 50vh">Click me to request serial port</button>
 
 		<canvas id="myCanvas" resize></canvas>
 		<script>
+			let glVal
+
 			function paint(values) {
 				var canvas = document.getElementById('myCanvas')
 				// Create an empty project and a view for the canvas:
 				paper.setup(canvas)
 				// Create a Paper.js Path to draw a line into it:
-				var path = new paper.Path()
+				// var path = new paper.Path()
 				// Give the stroke a color
+				// path.strokeColor = 'black'
+				let okPoints = []
+				let x = []
+				let y = []
+				values.forEach((e) => {
+					let [grad, dist] = e
+					x = dist * Math.cos(grad * (Math.PI / 180))
+					y = dist * Math.sin(grad * (Math.PI / 180))
+					okPoints.push(new paper.Point(x, y)) //
+				})
+				// let left = Math.abs(Math.min(...x))
+				// let right = Math.abs(Math.min(...y))
+				// console.log(left, right)
+				// for (let i = 0; i < x.length; i++) {
+				// 	okPoints.push(new paper.Point(x[i] + left, y[i] + right))
+				// }
+				console.log(okPoints)
+				var path = new paper.Path()
 				path.strokeColor = 'black'
-				var start = new paper.Point(100, 100)
+				// path.moveTo(new paper.Point(0, 0))
+				path.addSegments(okPoints)
+				path.closed = true
+				path.position = paper.view.center
+				// groupPoints
+				// drawPoints
+				// var start = new paper.Point(100, 100)
 				// Move to start and draw a line from there
-				path.moveTo(start)
+				// path.moveTo(start)
 				// Note that the plus operator on Point objects does not work
 				// in JavaScript. Instead, we need to call the add() function:
-				path.lineTo(start.add([200, -50]))
+				// path.lineTo(start.add([200, -50]))
 				// Draw the view now:
 				paper.view.draw()
 			}
-			paint()
 
 			async function readd() {
 				let port = await navigator.serial.requestPort()
@@ -43,15 +80,16 @@
 					try {
 						while (true) {
 							const { value, done } = await reader.read()
-							if (gotCode.includes('],]')) {
-								// |reader| has been canceled.
-								console.log(done)
-								console.log(JSON.stringify(gotCode))
-								gotCode = eval(gotCode.split('...')[1])
-								break
-							}
 							// Do something with |value|…
 							gotCode += value
+
+							if (gotCode.includes('],]')) {
+								// |reader| has been canceled.
+								console.log(gotCode.split('...')[1])
+								gotCode = eval(gotCode.split('...')[1])
+								paint(gotCode)
+								break
+							}
 							// console.log(value, done)
 						}
 					} catch (error) {
